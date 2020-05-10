@@ -1,28 +1,17 @@
 package com.bytedance.videoplayer;
 
-import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
-import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.SurfaceHolder;
 import android.view.View;
-import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.VideoView;
-
-import java.io.IOException;
-
-import tv.danmaku.ijk.media.player.IMediaPlayer;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 
 
@@ -31,8 +20,10 @@ public class IJKVideoActivity extends AppCompatActivity {
     private LinearLayout linearLayout;
     private VideoPlayerIJK ijkPlayer;
     private TextView timer;
+    private Button play, pause;
     private SeekBar seekBar;
     private boolean isPlaying;
+    private int screenHeight, screenWidth;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -73,21 +64,21 @@ public class IJKVideoActivity extends AppCompatActivity {
         thread.start();
         isPlaying = true;
 
-        findViewById(R.id.buttonPlay).setOnClickListener(new View.OnClickListener() {
+        play = findViewById(R.id.buttonPlay);
+        pause = findViewById(R.id.buttonPause);
+        play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 ijkPlayer.start();
                 isPlaying = true;
-                getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
             }
         });
 
-        findViewById(R.id.buttonPause).setOnClickListener(new View.OnClickListener() {
+        pause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 ijkPlayer.pause();
                 isPlaying = false;
-                getWindow().setFlags(WindowManager.LayoutParams.FLAG_SCALED, WindowManager.LayoutParams.FLAG_SCALED);
             }
         });
 
@@ -154,7 +145,38 @@ public class IJKVideoActivity extends AppCompatActivity {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        //使用在旋转为横屏后容易黑屏，且没有报错信息，未能找出错误原因。
+        if(newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            //进入横屏，开始全屏???全屏失败，过于卡顿且发生闪退，原因是linearLayout强制转化失败？？？
+            Log.d("IjkVideoActivity", "ORIENTATION_LANDSCAPE");
+            getRect();
+            play.setVisibility(View.INVISIBLE);
+            pause.setVisibility(View.INVISIBLE);
+            seekBar.setVisibility(View.INVISIBLE);
+            timer.setVisibility(View.INVISIBLE);
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) ijkPlayer.getLayoutParams();
+            lp.height = screenHeight;
+            lp.width = screenWidth;
+            ijkPlayer.setLayoutParams(lp);
+        }
+        else if(newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            Log.d("IjkVideoActivity", "ORIENTATION_PORTRAIT");
+            getRect();
+            play.setVisibility(View.VISIBLE);
+            pause.setVisibility(View.VISIBLE);
+            seekBar.setVisibility(View.VISIBLE);
+            timer.setVisibility(View.VISIBLE);
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) ijkPlayer.getLayoutParams();
+            lp.height = screenWidth * 9 / 16;
+            lp.width = screenWidth;
+            ijkPlayer.setLayoutParams(lp);
+        }
+    }
+
+    private void getRect() {
+        DisplayMetrics outMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(outMetrics);
+        screenWidth = outMetrics.widthPixels;
+        screenHeight = outMetrics.heightPixels;
     }
 }
 
